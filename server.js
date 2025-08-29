@@ -1,35 +1,35 @@
 const express = require("express");
-const axios = require("axios");
+const fetch = require("node-fetch");
 const app = express();
 
-const PORT = process.env.PORT || 10000;
+const port = process.env.PORT || 10000;
 
+// Route par défaut
 app.get("/", (req, res) => {
-  res.send("✅ API ROBLOX MARCHE");
+  res.send("API ROBLOX MARCHE ✅");
 });
 
-// Nouvelle route pour vérifier si un user suit un autre
+// Route /follow
 app.get("/follow", async (req, res) => {
   const { targetId, userId } = req.query;
 
   if (!targetId || !userId) {
-    return res.status(400).json({ error: "Paramètres manquants (targetId, userId)" });
+    return res.status(400).json({ error: "Missing targetId or userId" });
   }
 
   try {
-    const response = await axios.get(
-      `https://friends.roblox.com/v1/users/${userId}/followings`
-    );
+    const response = await fetch(`https://friends.roblox.com/v1/users/${userId}/followings`);
+    const data = await response.json();
 
-    const isFollowing = response.data.data.some(u => u.id == targetId);
-
+    const isFollowing = data.data.some(user => String(user.id) === String(targetId));
     res.json({ isFollowing });
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).json({ error: "Erreur lors de la requête Roblox API" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Failed to fetch from Roblox API" });
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`🚀 Serveur lancé sur le port ${PORT}`);
+// Lancement serveur
+app.listen(port, () => {
+  console.log(`Serveur lancé sur le port ${port}`);
 });
