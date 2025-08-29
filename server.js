@@ -19,39 +19,52 @@ app.get("/follow", async (req, res) => {
     let cursor = "";
     let isFollowing = false;
 
-    // boucle pagination
     while (true) {
       const url = `https://friends.roblox.com/v1/users/${userId}/followings?limit=100&cursor=${cursor}`;
-      const response = await fetch(url);
+      console.log("➡️ Fetching:", url);
 
-      if (!response.ok) {
-        return res.status(response.status).json({ error: "Roblox API error" });
+      const response = await fetch(url, {
+        headers: {
+          "User-Agent": "Roblox-Proxy/1.0",
+          "Accept": "application/json"
+        }
+      });
+
+      const text = await response.text();
+      let data;
+
+      try {
+        data = JSON.parse(text);
+      } catch (err) {
+        console.error("❌ JSON parse failed, raw response:", text);
+        return res.status(500).json({
+          error: "Roblox did not return valid JSON",
+          raw: text
+        });
       }
-
-      const data = await response.json();
 
       if (!data || !data.data) {
-        break; // sécurité si Roblox change le format
+        console.warn("⚠️ Unexpected Roblox API format:", data);
+        break;
       }
 
-      // check dans cette page
+      // Vérifie si targetId est dans cette page
       if (data.data.some(user => String(user.id) === String(targetId))) {
         isFollowing = true;
         break;
       }
 
-      // si plus de pages
       if (!data.nextPageCursor) break;
       cursor = data.nextPageCursor;
     }
 
-    res.json({ isFollowing });
+    return res.json({ isFollowing });
   } catch (error) {
     console.error("❌ Server error:", error);
-    res.status(500).json({ error: "Failed to fetch from Roblox API" });
+    return res.status(500).json({ error: "Failed to fetch from Roblox API" });
   }
 });
 
 app.listen(port, () => {
-  console.log(`Serveur lancé sur le port ${port}`);
+  console.log(`✅ Serveur lancé sur le port ${port}`);
 });
